@@ -1,0 +1,65 @@
+
+
+pipeline {
+    
+    environment {
+        dockerimagename = "njwgroeneveld/sleeper"
+        dockerImage = ""
+    }
+    
+    agent any
+    
+    stages {
+        
+       
+        stage('Checkout Source'){
+            steps {
+                git 'https://github.com/njwgroeneveld/TradingPub.git'
+            }
+        }
+        
+        
+        stage('Build image'){
+            steps{
+                script {
+                    dockerImage = docker.build dockerimagename
+                }
+            }
+        }
+        
+        
+        
+        stage('Pushing image'){
+            environment {
+                registryCredentials = 'dockerhublogin'
+            }
+            steps{
+                script {
+                    docker.withRegistry("https://registry.hub.docker.com", registryCredentials){
+                        dockerImage.push("latest")
+                    }
+                    
+                }
+            }
+            
+        }
+            
+            
+                
+            
+            
+            stage('Deploying App to kubernetes'){
+                steps {
+                    script {
+                        kubeconfig(credentialsId: "310ae65e-a6ae-4608-9bea-1ba11e52e104", serverUrl: "localhost:8443"){
+                            
+                            sh 'kubectl apply -f sleeper.yaml'
+                         
+                        }
+                    }
+                }
+            }
+           
+        }    
+    }
+    
